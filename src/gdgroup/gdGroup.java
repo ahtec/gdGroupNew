@@ -1,4 +1,3 @@
-
 package gdgroup;
 
 import java.io.File;
@@ -8,6 +7,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Vector;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Element;
@@ -16,6 +17,9 @@ public class gdGroup extends javax.swing.JFrame {
 
     public gdGroup() {
         initComponents();
+        jTextField1.setColumns(10);
+        jTextField1.setText("");
+
         FileDrop fileDrop = new FileDrop(jScrollPane1, new FileDrop.Listener() {
             public void filesDropped(java.io.File[] files) {
                 for (int i = 0; i < files.length; i++) {
@@ -48,6 +52,7 @@ public class gdGroup extends javax.swing.JFrame {
         jTextField2 = new javax.swing.JTextField();
         jScrollPane1 = new javax.swing.JScrollPane();
         jTextArea1 = new javax.swing.JTextArea();
+        jButton2 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -64,6 +69,13 @@ public class gdGroup extends javax.swing.JFrame {
         jTextArea1.setRows(5);
         jScrollPane1.setViewportView(jTextArea1);
 
+        jButton2.setText("LNK");
+        jButton2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton2ActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -71,13 +83,15 @@ public class gdGroup extends javax.swing.JFrame {
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 529, Short.MAX_VALUE)
+                    .addComponent(jScrollPane1)
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(jButton1)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(jTextField2)))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jButton2)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jTextField2, javax.swing.GroupLayout.DEFAULT_SIZE, 339, Short.MAX_VALUE)))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
@@ -89,7 +103,8 @@ public class gdGroup extends javax.swing.JFrame {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jButton1)
                     .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jTextField2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jTextField2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jButton2))
                 .addContainerGap())
         );
 
@@ -135,15 +150,55 @@ public class gdGroup extends javax.swing.JFrame {
         int nrFiles = 0;
         nrFiles = groupFiles(jTextField2.getText(), jTextField1.getText(), fileList);
 //        statusMessageLabel.setText("Moved " + nrFiles + " files to " + doelDir.getText());
-
         if (nrFiles > 0) {
             jTextArea1.setText("");
         }
-
-
-
-        // TODO add your handling code here:
     }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+        // move niet maar maak link 
+        String txtdoeldir;
+        txtdoeldir = jTextField2.getText();
+        if (!jTextField2.getText().isEmpty()) {
+            File f = new File(txtdoeldir);
+            if (!f.isDirectory()) {
+                f.mkdirs();
+            }
+
+        }
+        Vector fileList = new Vector();
+        Element paragraph = jTextArea1.getDocument().getDefaultRootElement();
+        // Get number of content elements
+        int contentCount = paragraph.getElementCount();
+        // Get index ranges for each content element.
+        // Each content element represents one line.
+        // Each line includes the terminating newline.
+        for (int i = 0; i < contentCount; i++) {
+            Element e = paragraph.getElement(i);
+            int rangeStart = e.getStartOffset();
+            int rangeEnd = e.getEndOffset();
+            try {
+                String line = jTextArea1.getText(rangeStart, rangeEnd - rangeStart);
+                line = line.replaceAll("\\n", "");
+                if (!line.isEmpty()) {
+                    if (jTextField2.getText().isEmpty()) {
+                        File tmp = new File(line);
+                        jTextField2.setText(tmp.getParent());
+                    }
+                    fileList.add(line);
+                    System.out.println(line);
+                }
+            } catch (BadLocationException ex) {
+                System.out.println("Error in get content of text area");
+            }
+        }
+        int nrFiles = 0;
+        nrFiles = linkFiles(jTextField2.getText(), jTextField1.getText(), fileList);
+        System.out.println("Linked " + nrFiles + " files to " + txtdoeldir);
+        if (nrFiles > 0) {
+            jTextArea1.setText("");
+        }
+    }//GEN-LAST:event_jButton2ActionPerformed
 
     /**
      * @param args the command line arguments
@@ -179,8 +234,7 @@ public class gdGroup extends javax.swing.JFrame {
             }
         });
     }
-    
-    
+
     int groupFiles(String workDirString, String prefix, Vector sourceFilesString) {
 
         int nrFilesMoved = 0;
@@ -231,6 +285,60 @@ public class gdGroup extends javax.swing.JFrame {
             }
 
         }
+        return nrFilesMoved;
+    }
+
+    int linkFiles(String workDirString, String prefix, Vector sourceFilesString) {
+        // maak een lnk file in de workDirString directory 
+        int nrFilesMoved = 0;
+
+        int sourceMax = 0;
+        int filenr = 0;
+//        sourceFilesString = sorteerSourceFilesString(sourceFilesString);
+        File workDir = new File(workDirString);
+        String extension = "";
+        sourceMax = sourceFilesString.size();
+        for (int c = 0; c < sourceMax; c++) {
+            String naamFile = (String) sourceFilesString.get(c);
+            naamFile = naamFile.replaceAll("\\n", "");
+            File ff = new File(naamFile);
+            if (ff.isFile() && (ff.canRead())) {
+//                System.out.println("moving   " + ff.getAbsolutePath());
+                File targetFile;
+//                do {
+
+                int extensionIndex = ff.getName().lastIndexOf(".");
+
+                try {
+                    extension = ff.getName().substring(extensionIndex);
+                    filenr = bepaalHoogsteFileNr(workDirString, prefix, extension);
+                    filenr++;
+                } catch (java.lang.StringIndexOutOfBoundsException e) {
+                    extension = "";
+                }
+                targetFile = new File(workDir, gormat(filenr, c, prefix, extension));
+//                } while (targetFile.exists());
+                System.out.println(targetFile.getAbsolutePath());
+
+                if (!targetFile.exists()) {
+                    Path ffPath = Path.of(ff.getAbsolutePath());
+                    Path targetPath = Path.of(targetFile.getAbsolutePath());
+                    try {
+                        Files.createSymbolicLink(targetPath, ffPath);
+
+                        nrFilesMoved++;
+                    } catch (IOException ex) {
+                        System.out.println("linking  was not successfully , quiting  " + ff.getAbsolutePath());
+                    }
+
+                } else {
+                    nrFilesMoved++;
+                }
+            } else {
+                System.out.println("is geen file or can not read linking was not successfully   " + ff.getAbsolutePath());
+            }
+        }
+
         return nrFilesMoved;
     }
 
@@ -290,6 +398,23 @@ public class gdGroup extends javax.swing.JFrame {
 
     }
 
+    private void link(File ff, File targetFile) throws IOException {
+//        throw new UnsupportedOperationException("Not yet implemented");
+        copy(ff, targetFile);
+        if (targetFile.exists()) {
+            if (targetFile.length() == ff.length()) {
+                boolean delete = ff.delete();
+                if (!delete) {
+                    System.out.println("De delete van bronfile is fout gegaan:  " + ff.getAbsolutePath());
+                }
+            } else {
+                System.out.println("Target ile verscilt van bronfile, not gedeleted:  " + ff.getAbsolutePath());
+
+            }
+        }
+
+    }
+
     public static void copy(File src, File dest) throws IOException {
         InputStream nputStream = null;
         OutputStream utputStream = null;
@@ -311,9 +436,9 @@ public class gdGroup extends javax.swing.JFrame {
     }
 
 
-
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
+    private javax.swing.JButton jButton2;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JTextArea jTextArea1;
     private javax.swing.JTextField jTextField1;
